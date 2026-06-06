@@ -5,7 +5,6 @@ import { FloatingPlatform } from './FloatingPlatform';
 import { ParticleField } from './ParticleField';
 import { PostEffects } from './PostEffects';
 import { PyramidCore } from './PyramidCore';
-import { MatrixRain } from './MatrixRain';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -22,7 +21,6 @@ function BackgroundScene() {
       <PyramidCore />
       <FloatingPlatform />
       <ParticleField />
-      <MatrixRain />
     </group>
   );
 }

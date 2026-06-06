@@ -50,7 +50,8 @@ export function GridInteractionLayer() {
     if (selectedCellId) {
       const cell = getCell(selectedCellId);
       if (cell) {
-        targetPos.current.set(cell.worldX, cell.worldY || 0, cell.worldZ);
+        const y = cell.building ? cell.building.height / 2 : 0;
+        targetPos.current.set(cell.worldX, y, cell.worldZ);
         isAnimating.current = true;
       }
     }

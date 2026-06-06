@@ -10,7 +10,23 @@ import KnowledgeGraph from '@/components/panels/KnowledgeGraph';
 import ScreenRecorder from '@/components/panels/ScreenRecorder';
 import { GridControlPanel } from '@/components/panels/GridControlPanel';
 import { useDashboardStore } from '@/store/useDashboardStore';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  Monitor, BookOpen, Activity, ListTodo, KeyRound,
+  Terminal as TerminalIcon, GitBranch, Camera, GripVertical
+} from 'lucide-react';
+
+const PANEL_ICONS: Record<string, React.ComponentType<{ size?: number | string }>> = {
+  commandDesk: Monitor,
+  journal: BookOpen,
+  observer: Activity,
+  task: ListTodo,
+  apiVault: KeyRound,
+  terminal: TerminalIcon,
+  knowledgeGraph: GitBranch,
+  screenRecorder: Camera,
+};
 
 const PANELS: Record<string, { title: string; component: React.ComponentType; defaultPos: [number, number]; defaultSize: [number, number] }> = {
   commandDesk: { title: 'Command Desk', component: CommandDesk, defaultPos: [50, 50], defaultSize: [720, 520] },
@@ -25,6 +41,8 @@ const PANELS: Record<string, { title: string; component: React.ComponentType; de
 
 const PANEL_KEYS = Object.keys(PANELS);
 
+const springConfig = { type: 'spring' as const, stiffness: 300, damping: 30, mass: 0.5 };
+
 interface DraggablePanelProps {
   panelId: string;
   children: React.ReactNode;
@@ -34,71 +52,39 @@ interface DraggablePanelProps {
 
 function DraggablePanel({ panelId, children, style, onPositionChange }: DraggablePanelProps) {
   const { activePanel, setActivePanel, panelStates } = useDashboardStore();
-  const [pos, setPos] = useState<[number, number]>(() => {
-    const stored = panelStates[panelId];
-    return stored ? [stored.position[0], stored.position[1]] : [50, 50];
-  });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number } | null>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const stored = panelStates[panelId];
+  const initialPos = stored ? stored.position : [50, 50];
   const isActive = activePanel === panelId;
 
-  const onMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('.no-drag')) return;
-    e.preventDefault();
-    setIsDragging(true);
-    dragRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      startPosX: pos[0],
-      startPosY: pos[1],
-    };
-    setActivePanel(panelId as any);
-  };
-
-  useEffect(() => {
-    if (!isDragging) return;
-    const onMove = (e: MouseEvent) => {
-      if (!dragRef.current) return;
-      const dx = e.clientX - dragRef.current.startX;
-      const dy = e.clientY - dragRef.current.startY;
-      const newX = Math.max(0, Math.min(window.innerWidth - 100, dragRef.current.startPosX + dx));
-      const newY = Math.max(0, Math.min(window.innerHeight - 100, dragRef.current.startPosY + dy));
-      const newPos: [number, number] = [newX, newY];
-      setPos(newPos);
-      onPositionChange?.(newPos);
-    };
-    const onUp = () => {
-      setIsDragging(false);
-      dragRef.current = null;
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-  }, [isDragging, onPositionChange]);
-
   return (
-    <div
-      ref={panelRef}
-      className={`glass-panel absolute z-10 transition-shadow duration-300 ${
-        isActive ? 'ring-1 ring-plasma-cyan/40 shadow-[0_0_30px_rgba(0,212,255,0.15)]' : 'shadow-lg'
-      }`}
-      style={{
-        left: pos[0],
-        top: pos[1],
-        ...style,
-        cursor: isDragging ? 'grabbing' : 'default',
-        userSelect: 'none',
-        minWidth: 300,
-        minHeight: 200,
+    <motion.div
+      className={`glass-panel absolute z-10 ${isActive ? 'ring-1 ring-plasma-cyan/40' : ''}`}
+      style={{ minWidth: 300, minHeight: 200, ...style }}
+      drag
+      dragMomentum
+      dragElastic={0.1}
+      initial={false}
+      animate={{
+        x: initialPos[0],
+        y: initialPos[1],
+        opacity: isActive ? 1 : 0.4,
+        filter: isActive ? 'blur(0px)' : 'blur(1px)',
+        boxShadow: isActive
+          ? '0 0 30px rgba(0,212,255,0.15)'
+          : '0 8px 32px rgba(0,0,0,0.6)',
       }}
-      onMouseDown={onMouseDown}
+      transition={springConfig}
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99, cursor: 'grabbing' }}
+      onDragEnd={(_, info) => {
+        const newX = Math.max(0, Math.min(window.innerWidth - 100, initialPos[0] + info.offset.x));
+        const newY = Math.max(0, Math.min(window.innerHeight - 100, initialPos[1] + info.offset.y));
+        onPositionChange?.([newX, newY]);
+      }}
+      onPointerDown={() => setActivePanel(panelId as any)}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }
 
@@ -143,41 +129,57 @@ function ConnectionLines({ navButtonRefs, panelPositions }: ConnectionLinesProps
 
 export default function App() {
   const { activePanel, setActivePanel } = useDashboardStore();
-  const [showPanelNav, setShowPanelNav] = useState(true);
   const [panelPositions, setPanelPositions] = useState<Record<string, [number, number]>>({});
   const navButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  const handlePanelPositionChange = (panelId: string, pos: [number, number]) => {
+  const handlePanelPositionChange = useCallback((panelId: string, pos: [number, number]) => {
     setPanelPositions((prev) => ({ ...prev, [panelId]: pos }));
-  };
+  }, []);
 
   useEffect(() => {
     const initialPositions: Record<string, [number, number]> = {};
     PANEL_KEYS.forEach((id) => {
-      const panel = PANELS[id];
-      initialPositions[id] = panel.defaultPos;
+      initialPositions[id] = [...PANELS[id].defaultPos];
     });
     setPanelPositions(initialPositions);
   }, []);
 
-  const activeCount = PANEL_KEYS.filter((id) => panelPositions[id] !== undefined).length;
-
   return (
     <AgentBridgeProvider>
-      <div className="relative w-screen h-screen overflow-hidden bg-void">
-        <div className="absolute inset-0 z-0" style={{ width: '100%', height: '100%' }}>
+      <div className="relative w-screen h-screen overflow-hidden bg-[var(--void)]">
+        <div className="absolute inset-0 z-0">
           <DashboardBackground />
         </div>
 
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-plasma-cyan/5 rounded-full blur-3xl animate-pulse-slow" />
-          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-plasma-green/5 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }} />
-          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-plasma-amber/3 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
+          <motion.div
+            className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl"
+            style={{ background: 'oklch(0.82 0.16 235 / 0.05)' }}
+            animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full blur-3xl"
+            style={{ background: 'oklch(0.85 0.22 155 / 0.05)' }}
+            animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+          />
+          <motion.div
+            className="absolute top-1/2 left-1/2 w-64 h-64 rounded-full blur-3xl"
+            style={{ background: 'oklch(0.80 0.18 85 / 0.03)' }}
+            animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.5, 0.2] }}
+            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+          />
         </div>
 
         <ConnectionLines navButtonRefs={navButtonRefs} panelPositions={panelPositions} />
 
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 z-50 mt-2">
+        <motion.div
+          className="absolute top-0 left-1/2 -translate-x-1/2 z-50 mt-2"
+          initial={{ y: -40, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.3 }}
+        >
           <div
             className="glass-panel flex items-center gap-1 px-3 py-2 border border-plasma-cyan/20 nav-glow-border"
             style={{
@@ -185,51 +187,78 @@ export default function App() {
               WebkitBackdropFilter: 'blur(16px) saturate(160%)',
             }}
           >
-            <span className="font-orbitron text-[10px] text-plasma-cyan tracking-widest mr-3">SOUL</span>
-            {Object.entries(PANELS).map(([id, panel]) => (
-              <button
-                key={id}
-                ref={(el) => { navButtonRefs.current[id] = el; }}
-                onClick={() => setActivePanel(id as any)}
-                className={`relative px-2.5 py-1 rounded text-[9px] font-jetbrains transition-all duration-200 ${
-                  activePanel === id
-                    ? 'bg-plasma-cyan/20 text-plasma-cyan border border-plasma-cyan/40'
-                    : 'text-text-muted hover:text-text-primary hover:bg-white/5 border border-transparent'
-                }`}
-              >
-                {activePanel === id && <div className="laser-indicator" />}
-                {panel.title}
-              </button>
-            ))}
-            <div className="ml-3 flex items-center gap-1.5 px-2 py-0.5 rounded bg-plasma-cyan/10 border border-plasma-cyan/20">
-              <span className="font-jetbrains text-[8px] text-plasma-cyan tracking-wider">
-                {PANEL_KEYS.length}/{PANEL_KEYS.length} PANELS
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {Object.entries(PANELS).map(([id, panel]) => {
-          const PanelContent = panel.component;
-          const isActive = activePanel === id;
-          return (
-            <DraggablePanel
-              key={id}
-              panelId={id}
-              onPositionChange={(pos) => handlePanelPositionChange(id, pos)}
+            <span className="font-orbitron text-[10px] text-plasma-cyan tracking-widest mr-2">SOUL</span>
+            {Object.entries(PANELS).map(([id, panel]) => {
+              const Icon = PANEL_ICONS[id];
+              return (
+                <motion.button
+                  key={id}
+                  ref={(el) => { navButtonRefs.current[id] = el; }}
+                  onClick={() => setActivePanel(id as any)}
+                  className={`relative flex items-center gap-1.5 px-2.5 py-1 rounded text-[9px] font-jetbrains ${
+                    activePanel === id
+                      ? 'bg-plasma-cyan/20 text-plasma-cyan border border-plasma-cyan/40'
+                      : 'text-text-muted hover:text-text-primary hover:bg-white/5 border border-transparent'
+                  }`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  layout
+                >
+                  {activePanel === id && (
+                    <motion.div
+                      className="absolute left-0 top-[20%] bottom-[20%] w-[2px] bg-plasma-cyan rounded-sm"
+                      layoutId="navLaser"
+                      style={{ boxShadow: '0 0 4px var(--plasma-cyan), 0 0 8px var(--plasma-cyan)' }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                    />
+                  )}
+                  <Icon size={10} />
+                  {panel.title}
+                </motion.button>
+              );
+            })}
+            <motion.div
+              className="ml-2 flex items-center gap-1.5 px-2 py-0.5 rounded bg-plasma-cyan/10 border border-plasma-cyan/20"
+              whileHover={{ scale: 1.05 }}
             >
-              <div className={`flex flex-col h-full transition-all duration-300 ${
-                isActive ? 'active-panel' : 'inactive-panel'
-              }`}>
-                <PanelContent />
-              </div>
-            </DraggablePanel>
-          );
-        })}
+              <span className="font-jetbrains text-[8px] text-plasma-cyan tracking-wider">
+                {PANEL_KEYS.length}/{PANEL_KEYS.length}
+              </span>
+            </motion.div>
+          </div>
+        </motion.div>
+
+        <AnimatePresence>
+          {Object.entries(PANELS).map(([id, panel]) => {
+            const PanelContent = panel.component;
+            const isActive = activePanel === id;
+            return (
+              <DraggablePanel
+                key={id}
+                panelId={id}
+                onPositionChange={(pos) => handlePanelPositionChange(id, pos)}
+              >
+                <motion.div
+                  className="flex flex-col h-full"
+                  animate={{ opacity: isActive ? 1 : 0.4 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <PanelContent />
+                </motion.div>
+              </DraggablePanel>
+            );
+          })}
+        </AnimatePresence>
 
         {activePanel && (
-          <div className="absolute bottom-4 left-4 z-50">
-            <div
+          <motion.div
+            className="absolute bottom-4 left-4 z-50"
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -20, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+          >
+            <motion.div
               className="relative overflow-hidden glass-panel px-3 py-2 border border-plasma-cyan/30"
               style={{
                 minWidth: '140px',
@@ -237,6 +266,7 @@ export default function App() {
                 WebkitBackdropFilter: 'blur(16px) saturate(160%)',
                 boxShadow: '0 0 20px rgba(0,212,255,0.15), 0 0 40px rgba(0,212,255,0.05)',
               }}
+              whileHover={{ scale: 1.02 }}
             >
               <div className="scan-line" />
               <div className="relative flex flex-col gap-1.5">
@@ -246,14 +276,15 @@ export default function App() {
                     {PANELS[activePanel]?.title.toUpperCase() ?? activePanel}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="ml-[7px] text-[7px] text-plasma-cyan/70 tracking-widest font-jetbrains">
+                <div className="flex items-center gap-1.5">
+                  <Activity size={7} className="text-plasma-cyan/70" />
+                  <span className="text-[7px] text-plasma-cyan/70 tracking-widest font-jetbrains">
                     ACTIVE
                   </span>
                 </div>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
 
         <GridControlPanel />

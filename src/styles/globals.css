@@ -4,19 +4,55 @@
 
 :root {
   --void: #050508;
-  --panel-base: rgba(15, 20, 35, 0.75);
-  --panel-border: rgba(0, 212, 255, 0.2);
-  --plasma-cyan: #00d4ff;
-  --plasma-green: #00ff88;
-  --plasma-amber: #ffaa00;
-  --plasma-red: #ff3366;
-  --text-primary: #e8f4ff;
-  --text-muted: #5a7a9a;
+
+  --plasma-cyan: oklch(0.82 0.16 235);
+  --plasma-cyan-dim: oklch(0.82 0.16 235 / 0.6);
+  --plasma-cyan-bright: oklch(0.90 0.18 235);
+
+  --plasma-green: oklch(0.85 0.22 155);
+  --plasma-green-dim: oklch(0.85 0.22 155 / 0.6);
+
+  --plasma-amber: oklch(0.80 0.18 85);
+  --plasma-amber-dim: oklch(0.80 0.18 85 / 0.6);
+
+  --plasma-red: oklch(0.65 0.22 20);
+  --plasma-red-dim: oklch(0.65 0.22 20 / 0.6);
+
+  --text-primary: oklch(0.92 0.02 260);
+  --text-secondary: oklch(0.75 0.04 260);
+  --text-muted: oklch(0.50 0.06 260);
+  --text-dim: oklch(0.35 0.04 260);
+
+  --panel-base: oklch(0.12 0.02 260 / 0.75);
+  --panel-raised: oklch(0.15 0.03 260 / 0.85);
+  --panel-border: oklch(0.82 0.16 235 / 0.18);
+  --panel-border-active: oklch(0.82 0.16 235 / 0.40);
+
+  --surface-ground: oklch(0.05 0.01 260);
+  --surface-overlay: oklch(0.10 0.02 260 / 0.60);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  --font-sans: 'Orbitron', 'Rajdhani', 'Arial Black', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
 
   --duration-fastest: 80ms;
   --duration-fast: 150ms;
   --duration-normal: 250ms;
   --duration-smooth: 350ms;
+  --duration-slower: 500ms;
+
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
 }
 
 @layer base {

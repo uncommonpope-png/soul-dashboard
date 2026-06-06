@@ -8,6 +8,7 @@ import ApiVault from '@/components/panels/ApiVault';
 import Terminal from '@/components/panels/Terminal';
 import KnowledgeGraph from '@/components/panels/KnowledgeGraph';
 import ScreenRecorder from '@/components/panels/ScreenRecorder';
+import { GridControlPanel } from '@/components/panels/GridControlPanel';
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { useState, useEffect, useRef, useMemo } from 'react';
 
@@ -255,7 +256,9 @@ export default function App() {
           </div>
         )}
 
-        <div className="absolute bottom-4 right-4 z-50 pointer-events-none">
+        <GridControlPanel />
+
+        <div className="absolute bottom-4 right-4 z-50 pointer-events-none" style={{ marginTop: 200 }}>
           <p className="text-[8px] font-jetbrains text-text-muted/40 text-right">
             Drag panels to reposition · Click nav to activate · ESC to deselect
           </p>

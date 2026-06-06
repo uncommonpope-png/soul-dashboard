@@ -5,11 +5,20 @@ import { FloatingPlatform } from './FloatingPlatform';
 import { ParticleField } from './ParticleField';
 import { PostEffects } from './PostEffects';
 import { PyramidCore } from './PyramidCore';
+import { MatrixRain } from './MatrixRain';
+import { RainSplash } from './RainSplash';
+import { GridCellLayer } from './GridCell';
+import { GridInteractionLayer, useGridInit } from './GridInteractionLayer';
+import { CityBuilder } from '../city/CityBuilder';
 import { useFrame } from '@react-three/fiber';
+import { useGridStore } from '../../store/useGridStore';
 import * as THREE from 'three';
 
 function BackgroundScene() {
   const groupRef = useRef<THREE.Group>(null);
+  const rainEnabled = useGridStore((s) => s.rainEnabled);
+
+  useGridInit();
 
   useFrame((state) => {
     if (!groupRef.current) return;
@@ -20,7 +29,12 @@ function BackgroundScene() {
     <group ref={groupRef}>
       <PyramidCore />
       <FloatingPlatform />
+      <GridCellLayer />
+      <CityBuilder />
+      {rainEnabled && <MatrixRain />}
+      {rainEnabled && <RainSplash />}
       <ParticleField />
+      <GridInteractionLayer />
     </group>
   );
 }
@@ -32,6 +46,7 @@ export function DashboardBackground() {
       dpr={[1, 2]}
       gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       style={{ width: '100%', height: '100%' }}
+      onContextMenu={(e) => e.preventDefault()}
     >
       <color attach='background' args={['#050508']} />
       <fog attach='fog' args={['#050508', 22, 60]} />

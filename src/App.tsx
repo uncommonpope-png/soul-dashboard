@@ -17,7 +17,7 @@ import {
   Terminal as TerminalIcon, GitBranch, Camera, GripVertical
 } from 'lucide-react';
 
-const PANEL_ICONS: Record<string, React.ComponentType<{ size?: number | string }>> = {
+const PANEL_ICONS: Record<string, React.ComponentType<{ size?: number | string; className?: string }>> = {
   commandDesk: Monitor,
   journal: BookOpen,
   observer: Activity,
@@ -41,41 +41,45 @@ const PANELS: Record<string, { title: string; component: React.ComponentType; de
 
 const PANEL_KEYS = Object.keys(PANELS);
 
-const springConfig = { type: 'spring' as const, stiffness: 300, damping: 30, mass: 0.5 };
+const springSnap = { type: 'spring' as const, stiffness: 300, damping: 30, mass: 0.5 };
+const springBouncy = { type: 'spring' as const, stiffness: 400, damping: 15 };
 
 interface DraggablePanelProps {
   panelId: string;
+  index: number;
   children: React.ReactNode;
   style?: React.CSSProperties;
   onPositionChange?: (pos: [number, number]) => void;
 }
 
-function DraggablePanel({ panelId, children, style, onPositionChange }: DraggablePanelProps) {
+function DraggablePanel({ panelId, index, children, style, onPositionChange }: DraggablePanelProps) {
   const { activePanel, setActivePanel, panelStates } = useDashboardStore();
   const stored = panelStates[panelId];
   const initialPos = stored ? stored.position : [50, 50];
   const isActive = activePanel === panelId;
+  const Icon = PANEL_ICONS[panelId];
 
   return (
     <motion.div
-      className={`glass-panel absolute z-10 ${isActive ? 'ring-1 ring-plasma-cyan/40' : ''}`}
+      className="absolute z-10"
       style={{ minWidth: 300, minHeight: 200, ...style }}
       drag
       dragMomentum
       dragElastic={0.1}
-      initial={false}
+      initial={{ scale: 0.7, opacity: 0, y: 80 }}
       animate={{
         x: initialPos[0],
         y: initialPos[1],
-        opacity: isActive ? 1 : 0.4,
-        filter: isActive ? 'blur(0px)' : 'blur(1px)',
-        boxShadow: isActive
-          ? '0 0 30px rgba(0,212,255,0.15)'
-          : '0 8px 32px rgba(0,0,0,0.6)',
+        scale: isActive ? 1.05 : 0.85,
+        opacity: isActive ? 1 : 0.15,
+        filter: isActive ? 'blur(0px)' : 'blur(3px)',
       }}
-      transition={springConfig}
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.99, cursor: 'grabbing' }}
+      exit={{ scale: 0.7, opacity: 0, y: -80 }}
+      transition={{
+        ...springSnap,
+        delay: index * 0.08,
+      }}
+      whileTap={{ scale: isActive ? 1.02 : 0.85, cursor: 'grabbing' }}
       onDragEnd={(_, info) => {
         const newX = Math.max(0, Math.min(window.innerWidth - 100, initialPos[0] + info.offset.x));
         const newY = Math.max(0, Math.min(window.innerHeight - 100, initialPos[1] + info.offset.y));
@@ -83,7 +87,33 @@ function DraggablePanel({ panelId, children, style, onPositionChange }: Draggabl
       }}
       onPointerDown={() => setActivePanel(panelId as any)}
     >
-      {children}
+      <div
+        className={`glass-panel h-full flex flex-col overflow-hidden transition-shadow duration-300 ${
+          isActive ? 'panel-glow-active' : ''
+        }`}
+        style={{
+          boxShadow: isActive
+            ? '0 0 40px oklch(0.82 0.16 235 / 0.25), 0 0 80px oklch(0.82 0.16 235 / 0.1), 0 8px 32px rgba(0,0,0,0.6)'
+            : '0 4px 16px rgba(0,0,0,0.4)',
+        }}
+      >
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-white/5 bg-black/20 shrink-0">
+          <Icon size={13} className={isActive ? 'text-plasma-cyan' : 'text-text-muted'} />
+          <span className={`font-jetbrains text-[10px] tracking-wider ${isActive ? 'text-plasma-cyan' : 'text-text-muted'}`}>
+            {PANELS[panelId].title.toUpperCase()}
+          </span>
+          {isActive && (
+            <motion.div
+              className="ml-auto w-1.5 h-1.5 rounded-full bg-plasma-cyan"
+              animate={{ scale: [1, 1.5, 1], opacity: [1, 0.4, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            />
+          )}
+        </div>
+        <div className="flex-1 overflow-auto">
+          {children}
+        </div>
+      </div>
     </motion.div>
   );
 }
@@ -229,22 +259,16 @@ export default function App() {
         </motion.div>
 
         <AnimatePresence>
-          {Object.entries(PANELS).map(([id, panel]) => {
+          {Object.entries(PANELS).map(([id, panel], i) => {
             const PanelContent = panel.component;
-            const isActive = activePanel === id;
             return (
               <DraggablePanel
                 key={id}
                 panelId={id}
+                index={i}
                 onPositionChange={(pos) => handlePanelPositionChange(id, pos)}
               >
-                <motion.div
-                  className="flex flex-col h-full"
-                  animate={{ opacity: isActive ? 1 : 0.4 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <PanelContent />
-                </motion.div>
+                <PanelContent />
               </DraggablePanel>
             );
           })}

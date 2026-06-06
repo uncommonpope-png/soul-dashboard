@@ -176,6 +176,24 @@
       0 0 80px rgba(0, 212, 255, 0.06);
   }
 
+  .panel-glow-active {
+    border-color: oklch(0.82 0.16 235 / 0.4);
+  }
+
+  .panel-glow-active::before {
+    background: linear-gradient(
+      135deg,
+      oklch(0.82 0.16 235 / 0.25),
+      transparent 50%,
+      oklch(0.85 0.22 155 / 0.1)
+    ) !important;
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0) !important;
+    -webkit-mask-composite: xor !important;
+    mask-composite: exclude !important;
+  }
+
   button {
     cursor: pointer;
     transition:
@@ -301,17 +319,6 @@
       0 0 15px rgba(0, 212, 255, 0.4),
       0 0 30px rgba(0, 212, 255, 0.2),
       0 0 45px rgba(0, 212, 255, 0.1);
-  }
-
-  .inactive-panel {
-    opacity: 0.4;
-    filter: blur(1px);
-    transition: opacity 0.3s ease, filter 0.3s ease;
-  }
-
-  .active-panel {
-    opacity: 1;
-    filter: blur(0);
   }
 
   .connection-line {

@@ -1,4 +1,4 @@
-import { EffectComposer, Bloom, ChromaticAberration, Noise, Vignette, N8AO, DepthOfField } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, ChromaticAberration, Noise, Vignette, N8AO } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import { Vector2 } from 'three';
 
@@ -13,16 +13,9 @@ export function PostEffects() {
         color='black'
       />
 
-      <DepthOfField
-        focusDistance={0.01}
-        focalLength={0.08}
-        bokehScale={2}
-        height={540}
-      />
-
       <Bloom
-        intensity={1.4}
-        luminanceThreshold={0.15}
+        intensity={0.8}
+        luminanceThreshold={0.3}
         luminanceSmoothing={0.9}
         mipmapBlur
         radius={0.8}

@@ -104,8 +104,8 @@
 
     @supports (backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px)) {
       background: rgba(15, 20, 35, 0.72);
-      -webkit-backdrop-filter: blur(16px) saturate(160%);
-      backdrop-filter: blur(16px) saturate(160%);
+      -webkit-backdrop-filter: blur(8px) saturate(160%);
+      backdrop-filter: blur(8px) saturate(160%);
     }
 
     position: relative;

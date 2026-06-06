@@ -8,11 +8,10 @@ export interface GridTextureParams {
   spokeColor: string;
   glowColor: string;
   bgColor: string;
-  glowIntensity: number;
 }
 
 export function createRadialGridTexture(params: GridTextureParams): THREE.CanvasTexture {
-  const { size, rings, spokes, ringColor, spokeColor, glowColor, bgColor, glowIntensity } = params;
+  const { size, rings, spokes, ringColor, spokeColor, glowColor, bgColor } = params;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -25,57 +24,48 @@ export function createRadialGridTexture(params: GridTextureParams): THREE.Canvas
   const cy = size / 2;
   const maxR = size / 2 - 8;
 
-  function drawGlowLine(x1: number, y1: number, x2: number, y2: number, color: string) {
-    ctx.shadowColor = glowColor;
-    ctx.shadowBlur = glowIntensity;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-  }
-
   for (let r = 1; r <= rings; r++) {
     const radius = (r / rings) * maxR;
-    for (let i = 0; i < 64; i++) {
-      const a1 = (i / 64) * Math.PI * 2;
-      const a2 = ((i + 1) / 64) * Math.PI * 2;
-      const alpha = r === rings ? 0.8 : 0.15 + (r / rings) * 0.3;
-      ctx.globalAlpha = alpha;
-      drawGlowLine(
-        cx + Math.cos(a1) * radius, cy + Math.sin(a1) * radius,
-        cx + Math.cos(a2) * radius, cy + Math.sin(a2) * radius,
-        ringColor,
-      );
-    }
+    const alpha = r === rings ? 0.7 : 0.1 + (r / rings) * 0.25;
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = ringColor;
+    ctx.lineWidth = r === rings ? 1.5 : 0.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.stroke();
   }
 
   for (let s = 0; s < spokes; s++) {
     const angle = (s / spokes) * Math.PI * 2;
-    const alpha = 0.1 + (s % 4 === 0 ? 0.4 : 0.15);
+    const alpha = s % 4 === 0 ? 0.35 : 0.12;
     ctx.globalAlpha = alpha;
-    drawGlowLine(cx, cy, cx + Math.cos(angle) * maxR, cy + Math.sin(angle) * maxR, spokeColor);
+    ctx.strokeStyle = spokeColor;
+    ctx.lineWidth = s % 4 === 0 ? 1 : 0.5;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(angle) * maxR, cy + Math.sin(angle) * maxR);
+    ctx.stroke();
   }
 
-  ctx.globalAlpha = 0.6;
-  ctx.shadowColor = glowColor;
-  ctx.shadowBlur = glowIntensity * 2;
-  ctx.strokeStyle = ringColor;
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = glowColor;
+  ctx.beginPath();
+  ctx.arc(cx, cy, maxR * 0.98, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = glowColor;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(cx, cy, maxR, 0, Math.PI * 2);
   ctx.stroke();
-  ctx.shadowBlur = 0;
-  ctx.globalAlpha = 1;
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
-  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
   tex.generateMipmaps = true;
-  tex.anisotropy = 4;
+  tex.anisotropy = 2;
   return tex;
 }
 

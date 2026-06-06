@@ -55,10 +55,6 @@ const fragShader = `
   uniform vec3 uColor;
   uniform float uBrightness;
 
-  float hash(vec2 p) {
-    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-  }
-
   void main() {
     float chars = 14.0;
     float idx = floor(vUv.y * chars);
@@ -99,12 +95,14 @@ export function MatrixRain() {
   const columns = useMemo(() => {
     const data: ColumnState[] = [];
     const radius = 9;
+    let seed = 0;
+    const rand = () => { seed = (seed * 16807 + 0) % 2147483647; return (seed & 0x7fffffff) / 2147483647; };
     for (let i = 0; i < COLUMNS; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const r = Math.sqrt(Math.random()) * radius;
+      const angle = rand() * Math.PI * 2;
+      const r = Math.sqrt(rand()) * radius;
       data.push({
-        speed: FALL_SPEED_MIN + Math.random() * (FALL_SPEED_MAX - FALL_SPEED_MIN),
-        offset: Math.random() * 1000,
+        speed: FALL_SPEED_MIN + rand() * (FALL_SPEED_MAX - FALL_SPEED_MIN),
+        offset: rand() * 1000,
         x: Math.cos(angle) * r,
         z: Math.sin(angle) * r,
       });
@@ -148,7 +146,7 @@ export function MatrixRain() {
           geometry={geo}
           material={materials[i]}
           position={[col.x, 2, col.z]}
-          rotation={[0, Math.random() * Math.PI * 2, 0]}
+          rotation={[0, col.offset * 0.01, 0]}
         />
       ))}
     </group>

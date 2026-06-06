@@ -13,14 +13,13 @@ export function FloatingPlatform() {
   const RADIUS = 16;
 
   const textureParams: GridTextureParams = {
-    size: 1024,
+    size: 512,
     rings: RINGS,
     spokes: SPOKES,
     ringColor: '#00d4ff',
     spokeColor: '#00d4ff',
     glowColor: '#00d4ff',
     bgColor: 'rgba(5, 5, 8, 0.3)',
-    glowIntensity: 8,
   };
 
   const gridTexture = useMemo(() => createRadialGridTexture(textureParams), []);

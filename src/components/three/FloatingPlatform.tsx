@@ -98,6 +98,16 @@ export function FloatingPlatform() {
     const t = state.clock.elapsedTime;
     if (groupRef.current) groupRef.current.rotation.y = t * 0.01;
     if (ringRef.current) ringRef.current.rotation.y = -t * 0.008;
+
+    const pulseOpacity = 0.5 + 0.3 * Math.sin(t * 1.5);
+    const gridMat = gridRef.current?.material as THREE.MeshBasicMaterial | undefined;
+    if (gridMat) gridMat.opacity = pulseOpacity;
+
+    const glow = 0.08 + 0.06 * Math.sin(t * 2);
+    const outerRing = groupRef.current?.children[groupRef.current.children.length - 1] as THREE.Mesh | undefined;
+    if (outerRing?.material) {
+      (outerRing.material as THREE.MeshBasicMaterial).opacity = glow;
+    }
   });
 
   return (
